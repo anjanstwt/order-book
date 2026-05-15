@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: order-book-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: order_book_db
+    ports:
+      - "5440:5432"
+    volumes:
+      - order_book_data:/var/lib/postgresql/data
+
+volumes:
+  order_book_data:
