@@ -11,11 +11,16 @@ impl<T> Queue<T> {
         }
     }
 
-    pub fn push(&mut self, value: T) {
+    pub fn append(&mut self, value: T) {
         self.values.push_back(Some(value));
     }
 
-    pub fn pop(&mut self) -> Option<T> {
-        return self.values.pop_front()?;
+    pub fn remove(&mut self) {
+
     }
+
+    pub fn pop_head(&mut self) {
+
+    }
+
 }

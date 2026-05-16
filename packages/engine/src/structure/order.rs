@@ -1,14 +1,14 @@
 pub struct Order {
-    pub id: u128,
+    pub id: u32,
     pub side: Side,
-    pub price: u128,
-    pub quantity: u128,
-    pub remaining_quantity: u128,
-    pub sequence: u128,
+    pub price: u32,
+    pub quantity: u32,
+    pub remaining_quantity: u32,
+    pub sequence: u64,
     pub status: State,
-    pub prev_order_ref: u128,
-    pub next_order_ref: u128, // references the position in queue to cancel an order at O(1)
-    pub price_ref: u128,      // references the price the order was affecting
+    pub prev_order: Option<usize>,
+    pub next_order: Option<usize>,
+    pub level_index: Option<usize>,
 }
 
 pub enum Side {

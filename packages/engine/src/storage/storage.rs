@@ -1,26 +1,42 @@
+use std::collections::VecDeque;
+
 pub struct Storage<T> {
     pub values: Vec<Option<T>>,
+    free_slots: VecDeque<usize>,
 }
 
 impl<T> Storage<T> {
     pub fn new() -> Self {
-        Storage { values: Vec::new() }
+        Storage {
+            values: Vec::new(),
+            free_slots: VecDeque::new(),
+        }
     }
 
-    pub fn insert(&mut self, value: T) -> u128 {
+    pub fn insert_value(&mut self, value: T) -> usize {
+        if let Some(idx) = self.free_slots.pop_front() {
+            self.values[idx] = Some(value);
+            return idx;
+        }
+
         self.values.push(Some(value));
-        return self.values.len() as u128 - 1;
+        return self.values.len() - 1;
     }
 
-    pub fn remove(&mut self, idx: usize) {
+    pub fn remove_value(&mut self, idx: usize) {
+        if idx >= self.values.len() || self.values.get(idx).is_none() {
+            return;
+        }
+
         self.values[idx] = None;
+        self.free_slots.push_back(idx);
     }
 
-    pub fn get(&self, idx: usize) -> Option<&T> {
+    pub fn get_value(&self, idx: usize) -> Option<&T> {
         self.values.get(idx)?.as_ref()
     }
 
-    pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
+    pub fn get_mut_value(&mut self, idx: usize) -> Option<&mut T> {
         self.values.get_mut(idx)?.as_mut()
     }
 }
