@@ -6,3 +6,6 @@ pub use price_level::*;
 
 pub mod book;
 pub use book::*;
+
+pub mod types;
+pub use types::*;

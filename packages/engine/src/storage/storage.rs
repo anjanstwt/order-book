@@ -1,20 +1,22 @@
 use std::collections::VecDeque;
 
+// using the free_slots as LIFO not FIFO as the last putted free slot will more likely to be in
+// cache than the prev one
 pub struct Storage<T> {
     pub values: Vec<Option<T>>,
-    free_slots: VecDeque<usize>,
+    free_slots: Vec<usize>,
 }
 
 impl<T> Storage<T> {
     pub fn new() -> Self {
         Storage {
             values: Vec::new(),
-            free_slots: VecDeque::new(),
+            free_slots: Vec::new(),
         }
     }
 
     pub fn insert_value(&mut self, value: T) -> usize {
-        if let Some(idx) = self.free_slots.pop_front() {
+        if let Some(idx) = self.free_slots.pop() {
             self.values[idx] = Some(value);
             return idx;
         }
@@ -24,12 +26,14 @@ impl<T> Storage<T> {
     }
 
     pub fn remove_value(&mut self, idx: usize) {
-        if idx >= self.values.len() || self.values.get(idx).is_none() {
-            return;
-        }
+        debug_assert!(idx < self.values.len(), "index {idx} out of bounds");
+        assert!(
+            self.values[idx].is_some(),
+            "slot index {idx} is already empty",
+        );
 
         self.values[idx] = None;
-        self.free_slots.push_back(idx);
+        self.free_slots.push(idx);
     }
 
     pub fn get_value(&self, idx: usize) -> Option<&T> {

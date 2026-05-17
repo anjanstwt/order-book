@@ -1,26 +1,35 @@
+use crate::structure::{OrderId, Quantity, Sequence, Side, State, Tick};
+
 pub struct Order {
-    pub id: u32,
+    pub id: OrderId,
     pub side: Side,
-    pub price: u32,
-    pub quantity: u32,
-    pub remaining_quantity: u32,
-    pub sequence: u64,
+    pub tick: Tick,
+    pub quantity: Quantity,
+    pub remaining_quantity: Quantity,
+    pub sequence: Sequence,
     pub status: State,
     pub prev_order: Option<usize>,
     pub next_order: Option<usize>,
-    pub level_index: Option<usize>,
 }
 
-pub enum Side {
-    Ask,
-    Bid,
-}
-
-pub enum State {
-    New,
-    Resting,
-    PartiallyFilled,
-    Filled,
-    Canceled,
-    Rejected,
+impl Order {
+    pub fn new(
+        id: OrderId,
+        side: Side,
+        tick: Tick,
+        quantity: Quantity,
+        sequence: Sequence,
+    ) -> Self {
+        Order {
+            id,
+            side,
+            tick,
+            quantity,
+            remaining_quantity: quantity,
+            sequence,
+            status: State::New,
+            prev_order: None,
+            next_order: None,
+        }
+    }
 }
