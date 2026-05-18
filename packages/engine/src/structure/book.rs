@@ -1,22 +1,24 @@
 use crate::{
     storage::Storage,
-    structure::{Order, PriceLevel, Side, Tick},
+    structure::{BitMap, Order, PriceLevel, Side, Tick},
 };
 
 pub struct Book {
     side: Side,
     pub best_tick: Option<Tick>,
     pub levels: Vec<Option<PriceLevel>>,
+    bitmap: BitMap,
 }
 
 impl Book {
-    pub fn new(side: Side) -> Self {
+    pub fn new(side: Side, capacity_ticks: u64) -> Self {
         let mut new_levels = Vec::new();
-        new_levels.resize_with(10_000_000, || None);
+        new_levels.resize_with(capacity_ticks as usize, || None);
         Book {
             side,
             best_tick: None,
             levels: new_levels,
+            bitmap: BitMap::new(Some(capacity_ticks)),
         }
     }
 
@@ -39,6 +41,7 @@ impl Book {
         // check if that tick idx available in array
         if self.levels.len() > tick as usize {
             self.levels[tick as usize] = Some(price_level);
+            self.bitmap.set(tick);
         } else {
             return Err("Invalid price, it's long..".to_string());
         }
@@ -75,9 +78,10 @@ impl Book {
             .and_then(|level| level.as_mut())
             .ok_or("The price doesn't exist".to_string())?;
 
-        price_level.remove(storage, order_idx)?;
+        price_level.remove(storage, order_idx);
         if price_level.order_count == 0 {
             self.levels[tick as usize] = None;
+            self.bitmap.clear(tick);
         }
 
         let Some(best_tick) = self.best_tick else {
@@ -86,39 +90,16 @@ impl Book {
 
         // means this level was the best price
         if best_tick == tick {
-            self.traverse_to_next_best_price(best_tick as usize);
+            self.best_tick = self.find_best();
         }
 
         Ok(())
     }
 
-    fn traverse_to_next_best_price(&mut self, tick_idx: usize) {
+    fn find_best(&self) -> Option<Tick> {
         match self.side {
-            Side::Ask => {
-                let mut i = tick_idx + 1;
-                while i < self.levels.len() {
-                    if let Some(Some(_val)) = self.levels.get(i) {
-                        self.best_tick = Some(i as Tick);
-                        return;
-                    }
-
-                    i += 1;
-                }
-                // if this hits means, no asks left
-                self.best_tick = None;
-            }
-            Side::Bid => {
-                let mut i = tick_idx as i64 - 1;
-                while i >= 0 {
-                    if let Some(Some(_val)) = self.levels.get(i as usize) {
-                        self.best_tick = Some(i as Tick);
-                        return;
-                    }
-                    i -= 1;
-                }
-                // if this hits means, no bids left
-                self.best_tick = None;
-            }
+            Side::Ask => self.bitmap.first_lowest_tick(),
+            Side::Bid => self.bitmap.first_highest_tick(),
         }
     }
 }
