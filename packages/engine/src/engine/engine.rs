@@ -2,7 +2,7 @@ use crate::{
     book::{AskBook, BidBook},
     engine::MatchReport,
     storage::Storage,
-    structure::Order,
+    structure::{Order, Trade},
     types::{DEFAULT_CAPACITY_TICKS, OrderId, Quantity, Sequence, Side, State, Tick},
 };
 
@@ -20,7 +20,7 @@ impl Engine {
             bids: BidBook::new(Some(capacity)),
             asks: AskBook::new(Some(capacity)),
             storage: Storage::<Order>::new(),
-            next_sequence: 0,
+            next_sequence: 1,
         }
     }
 
@@ -31,25 +31,91 @@ impl Engine {
         tick: Tick,
         quantity: Quantity,
     ) -> Result<MatchReport, String> {
-        self.next_sequence += 1;
-        let order: Order = Order::new(id, side, tick, quantity, self.next_sequence);
+        let mut remaining = quantity;
+        let mut trades = Vec::<Trade>::new();
 
-        let order_idx = self.storage.insert_value(order);
-
+        // matching against other side of the book
         match side {
             Side::Ask => {
-                self.asks
-                    .add_limit_order(&mut self.storage, tick, order_idx)?;
+                while remaining > 0 {
+                    let Some(best_bid) = self.bids.best_tick else {
+                        break;
+                    };
+                    if best_bid < tick {
+                        break;
+                    }
+
+                    self.bids.match_at(
+                        &mut self.storage,
+                        best_bid,
+                        id,
+                        &mut remaining,
+                        &mut self.next_sequence,
+                        &mut trades,
+                    );
+                }
             }
             Side::Bid => {
-                self.asks
-                    .add_limit_order(&mut self.storage, tick, order_idx)?;
+                while remaining > 0 {
+                    let Some(best_ask) = self.asks.best_tick else {
+                        break;
+                    };
+                    if best_ask > tick {
+                        break;
+                    }
+
+                    self.asks.match_at(
+                        &mut self.storage,
+                        best_ask,
+                        id,
+                        &mut remaining,
+                        &mut self.next_sequence,
+                        &mut trades,
+                    );
+                }
             }
         }
 
-        let match_report = MatchReport::new(id, State::Resting, quantity, quantity, Vec::new());
+        let filled = quantity - remaining;
+        let taker_status;
+        // put the left over of the order to the limit order
+        if remaining > 0 {
+            let mut order = Order::new(id, side, tick, quantity, self.next_sequence);
+            order.remaining_quantity = remaining;
+            self.next_sequence += 1;
 
-        Ok(match_report)
+            let order_idx = self.storage.insert_value(order);
+
+            match side {
+                Side::Ask => self
+                    .asks
+                    .add_limit_order(&mut self.storage, tick, order_idx)?,
+                Side::Bid => self
+                    .bids
+                    .add_limit_order(&mut self.storage, tick, order_idx)?,
+            }
+
+            // changing the fill status
+            if filled > 0 {
+                self.storage
+                    .get_mut_value(order_idx)
+                    .expect("just inserted order is missing")
+                    .status = State::PartiallyFilled;
+                taker_status = State::PartiallyFilled;
+            } else {
+                taker_status = State::Resting;
+            }
+        } else {
+            taker_status = State::Filled;
+        }
+
+        Ok(MatchReport::new(
+            id,
+            taker_status,
+            filled,
+            remaining,
+            trades,
+        ))
     }
 
     pub fn submit_market_order(
