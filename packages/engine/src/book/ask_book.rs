@@ -1,6 +1,7 @@
 use crate::{
     storage::Storage,
-    structure::{BitMap, Order, PriceLevel, Quantity, Tick},
+    structure::{BitMap, Order, PriceLevel},
+    types::{DEFAULT_CAPACITY_TICKS, Quantity, Tick},
 };
 
 pub struct AskBook {
@@ -11,7 +12,7 @@ pub struct AskBook {
 
 impl AskBook {
     pub fn new(capacity_ticks: Option<u64>) -> Self {
-        let capacity = capacity_ticks.unwrap_or(262_144);
+        let capacity = capacity_ticks.unwrap_or(DEFAULT_CAPACITY_TICKS);
         let mut new_levels = Vec::new();
         new_levels.resize_with(capacity as usize, || None);
         Self {

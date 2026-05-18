@@ -4,8 +4,8 @@ pub use order::*;
 pub mod price_level;
 pub use price_level::*;
 
-pub mod types;
-pub use types::*;
-
 pub mod bitmap;
 pub use bitmap::*;
+
+pub mod trade;
+pub use trade::*;

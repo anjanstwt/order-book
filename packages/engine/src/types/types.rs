@@ -3,12 +3,13 @@ pub type Tick = u64;
 pub type Quantity = u64;
 pub type Sequence = u64;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Ask,
     Bid,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {
     New,
     Resting,
@@ -17,3 +18,5 @@ pub enum State {
     Canceled,
     Rejected,
 }
+
+pub const DEFAULT_CAPACITY_TICKS: u64 = 262_144;

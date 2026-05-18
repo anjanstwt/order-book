@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 // using the free_slots as LIFO not FIFO as the last putted free slot will more likely to be in
 // cache than the prev one
 pub struct Storage<T> {

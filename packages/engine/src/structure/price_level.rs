@@ -1,6 +1,7 @@
 use crate::{
     storage::Storage,
-    structure::{Order, Quantity, State, Tick},
+    structure::Order,
+    types::{Quantity, State, Tick},
 };
 
 pub struct PriceLevel {

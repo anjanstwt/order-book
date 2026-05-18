@@ -1,4 +1,4 @@
-use crate::structure::Tick;
+use crate::types::{DEFAULT_CAPACITY_TICKS, Tick};
 
 pub struct BitMap {
     l0: Vec<u64>,
@@ -8,7 +8,7 @@ pub struct BitMap {
 
 impl BitMap {
     pub fn new(capacity_ticks: Option<u64>) -> Self {
-        let ticks = capacity_ticks.unwrap_or(262_144);
+        let ticks = capacity_ticks.unwrap_or(DEFAULT_CAPACITY_TICKS);
 
         /*
          * the logic behind adding 63

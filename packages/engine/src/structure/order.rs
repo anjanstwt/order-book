@@ -1,4 +1,4 @@
-use crate::structure::{OrderId, Quantity, Sequence, Side, State, Tick};
+use crate::types::{OrderId, Quantity, Sequence, Side, State, Tick};
 
 pub struct Order {
     pub id: OrderId,
