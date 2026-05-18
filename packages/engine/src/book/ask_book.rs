@@ -1,24 +1,23 @@
 use crate::{
     storage::Storage,
-    structure::{BitMap, Order, PriceLevel, Side, Tick},
+    structure::{BitMap, Order, PriceLevel, Quantity, Tick},
 };
 
-pub struct Book {
-    side: Side,
+pub struct AskBook {
     pub best_tick: Option<Tick>,
     pub levels: Vec<Option<PriceLevel>>,
     bitmap: BitMap,
 }
 
-impl Book {
-    pub fn new(side: Side, capacity_ticks: u64) -> Self {
+impl AskBook {
+    pub fn new(capacity_ticks: Option<u64>) -> Self {
+        let capacity = capacity_ticks.unwrap_or(262_144);
         let mut new_levels = Vec::new();
-        new_levels.resize_with(capacity_ticks as usize, || None);
-        Book {
-            side,
+        new_levels.resize_with(capacity as usize, || None);
+        Self {
             best_tick: None,
             levels: new_levels,
-            bitmap: BitMap::new(Some(capacity_ticks)),
+            bitmap: BitMap::new(Some(capacity)),
         }
     }
 
@@ -51,17 +50,8 @@ impl Book {
             return Ok(());
         };
 
-        match self.side {
-            Side::Ask => {
-                if tick < best_tick {
-                    self.best_tick = Some(tick);
-                }
-            }
-            Side::Bid => {
-                if tick > best_tick {
-                    self.best_tick = Some(tick);
-                }
-            }
+        if tick < best_tick {
+            self.best_tick = Some(tick);
         }
         Ok(())
     }
@@ -71,14 +61,14 @@ impl Book {
         storage: &mut Storage<Order>,
         tick: Tick,
         order_idx: usize,
-    ) -> Result<(), String> {
+    ) -> Result<Quantity, String> {
         let price_level = self
             .levels
             .get_mut(tick as usize)
             .and_then(|level| level.as_mut())
             .ok_or("The price doesn't exist".to_string())?;
 
-        price_level.remove(storage, order_idx);
+        let quantity = price_level.remove(storage, order_idx);
         if price_level.order_count == 0 {
             self.levels[tick as usize] = None;
             self.bitmap.clear(tick);
@@ -90,16 +80,9 @@ impl Book {
 
         // means this level was the best price
         if best_tick == tick {
-            self.best_tick = self.find_best();
+            self.best_tick = self.bitmap.first_lowest_tick();
         }
 
-        Ok(())
-    }
-
-    fn find_best(&self) -> Option<Tick> {
-        match self.side {
-            Side::Ask => self.bitmap.first_lowest_tick(),
-            Side::Bid => self.bitmap.first_highest_tick(),
-        }
+        Ok(quantity)
     }
 }

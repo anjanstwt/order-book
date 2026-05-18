@@ -8,7 +8,7 @@ pub struct BitMap {
 
 impl BitMap {
     pub fn new(capacity_ticks: Option<u64>) -> Self {
-        let ticks = capacity_ticks.unwrap_or_else(|| 262144 as u64);
+        let ticks = capacity_ticks.unwrap_or(262_144);
 
         /*
          * the logic behind adding 63
@@ -64,7 +64,7 @@ impl BitMap {
         // setting the l2 layer
         let l2_word_idx = (l1_word_idx / 64) as usize;
         let l2_bit_idx = l1_word_idx % 64;
-        self.l1[l2_word_idx] |= 1u64 << l2_bit_idx;
+        self.l2[l2_word_idx] |= 1u64 << l2_bit_idx;
     }
 
     pub fn clear(&mut self, tick: Tick) {
@@ -104,7 +104,7 @@ impl BitMap {
         // clearing the l2 layer
         let l2_word_idx = (l1_word_idx / 64) as usize;
         let l2_bit_idx = l1_word_idx % 64;
-        self.l1[l2_word_idx] &= !(1u64 << l2_bit_idx);
+        self.l2[l2_word_idx] &= !(1u64 << l2_bit_idx);
     }
 
     // this will be used to find the next lowest price
