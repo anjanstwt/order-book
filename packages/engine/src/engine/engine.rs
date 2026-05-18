@@ -51,4 +51,17 @@ impl Engine {
 
         Ok(match_report)
     }
+
+    pub fn submit_market_order(
+        &mut self,
+        id: OrderId,
+        side: Side,
+        quantity: Quantity,
+    ) -> Result<MatchReport, String> {
+        unimplemented!()
+    }
+
+    pub fn cancel_order(&mut self, order_idx: usize) -> Result<(), String> {
+        unimplemented!()
+    }
 }

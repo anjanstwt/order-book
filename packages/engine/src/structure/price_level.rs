@@ -36,7 +36,10 @@ impl PriceLevel {
                 "order tick {} and level tick {} are not equal",
                 order.tick, self.tick,
             );
-            assert_eq!(order.status, State::New, "It's not a new order");
+            assert!(
+                matches!(order.status, State::New | State::PartiallyFilled),
+                "It's not a new order"
+            );
             debug_assert!(order.remaining_quantity > 0, "zero quantity found");
 
             self.head_order = Some(order_idx);
@@ -45,7 +48,9 @@ impl PriceLevel {
             self.total_volume += order.remaining_quantity;
             order.prev_order = None;
             order.next_order = None;
-            order.status = State::Resting;
+            if order.status == State::New {
+                order.status = State::Resting;
+            }
             return;
         }
 
@@ -76,7 +81,9 @@ impl PriceLevel {
             // increase the total volume and order count
             self.total_volume += order.remaining_quantity;
             self.order_count += 1;
-            order.status = State::Resting;
+            if order.status == State::New {
+                order.status = State::Resting;
+            }
         }
         // point the tail order to the new order index
         self.tail_order = Some(order_idx);
