@@ -9,3 +9,6 @@ pub use book::*;
 
 pub mod types;
 pub use types::*;
+
+pub mod bitmap;
+pub use bitmap::*;

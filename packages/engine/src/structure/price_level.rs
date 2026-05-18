@@ -44,6 +44,7 @@ impl PriceLevel {
             self.total_volume += order.remaining_quantity;
             order.prev_order = None;
             order.next_order = None;
+            order.status = State::Resting;
             return;
         }
 
@@ -74,6 +75,7 @@ impl PriceLevel {
             // increase the total volume and order count
             self.total_volume += order.remaining_quantity;
             self.order_count += 1;
+            order.status = State::Resting;
         }
         // point the tail order to the new order index
         self.tail_order = Some(order_idx);
@@ -126,22 +128,20 @@ impl PriceLevel {
             self.tail_order = prev_idx;
         }
 
+        debug_assert!(
+            self.total_volume >= remaining_quantity,
+            "total volume is less than remaining quantity"
+        );
         self.total_volume -= remaining_quantity;
+        debug_assert!(
+            self.order_count > 0,
+            "order count is 0 but trying to remove",
+        );
         self.order_count -= 1;
 
         let order = storage
             .get_mut_value(order_idx)
             .expect("order not found in storage.");
-
-        assert_eq!(
-            order.tick, self.tick,
-            "order tick {} and level tick {} are not equal",
-            order.tick, self.tick,
-        );
-        assert!(
-            matches!(order.status, State::Resting | State::PartiallyFilled),
-            "order not live"
-        );
 
         order.prev_order = None;
         order.next_order = None;
