@@ -10,6 +10,7 @@ pub struct MatchReport {
     pub filled_quantity: Quantity,
     pub remaining_quantity: Quantity,
     pub trades: Vec<Trade>,
+    pub resting_order_idx: Option<usize>,
 }
 
 impl MatchReport {
@@ -19,6 +20,7 @@ impl MatchReport {
         filled_quantity: Quantity,
         remaining_quantity: Quantity,
         trades: Vec<Trade>,
+        resting_order_idx: Option<usize>,
     ) -> Self {
         Self {
             taker_order_id,
@@ -26,6 +28,7 @@ impl MatchReport {
             filled_quantity,
             remaining_quantity,
             trades,
+            resting_order_idx,
         }
     }
 }

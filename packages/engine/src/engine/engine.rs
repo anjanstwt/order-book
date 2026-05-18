@@ -78,6 +78,7 @@ impl Engine {
 
         let filled = quantity - remaining;
         let taker_status;
+        let mut resting_order_idx: Option<usize> = None;
         // put the left over of the order to the limit order
         if remaining > 0 {
             let mut order = Order::new(id, side, tick, quantity, self.next_sequence);
@@ -85,6 +86,7 @@ impl Engine {
             self.next_sequence += 1;
 
             let order_idx = self.storage.insert_value(order);
+            resting_order_idx = Some(order_idx);
 
             match side {
                 Side::Ask => self
@@ -115,6 +117,7 @@ impl Engine {
             filled,
             remaining,
             trades,
+            resting_order_idx,
         ))
     }
 
@@ -124,10 +127,90 @@ impl Engine {
         side: Side,
         quantity: Quantity,
     ) -> Result<MatchReport, String> {
-        unimplemented!()
+        let mut remaining = quantity;
+        let mut trades = Vec::<Trade>::new();
+
+        match side {
+            Side::Ask => {
+                while remaining > 0 {
+                    let Some(best_bid) = self.bids.best_tick else {
+                        break;
+                    };
+                    self.bids.match_at(
+                        &mut self.storage,
+                        best_bid,
+                        id,
+                        &mut remaining,
+                        &mut self.next_sequence,
+                        &mut trades,
+                    );
+                }
+            }
+            Side::Bid => {
+                while remaining > 0 {
+                    let Some(best_ask) = self.asks.best_tick else {
+                        break;
+                    };
+                    self.asks.match_at(
+                        &mut self.storage,
+                        best_ask,
+                        id,
+                        &mut remaining,
+                        &mut self.next_sequence,
+                        &mut trades,
+                    );
+                }
+            }
+        }
+
+        let filled = quantity - remaining;
+        let taker_status: State;
+
+        if remaining == 0 {
+            taker_status = State::Filled;
+        } else if filled > 0 {
+            taker_status = State::PartiallyFilled;
+        } else {
+            taker_status = State::Canceled;
+        }
+
+        Ok(MatchReport::new(
+            id,
+            taker_status,
+            filled,
+            remaining,
+            trades,
+            None,
+        ))
     }
 
     pub fn cancel_order(&mut self, order_idx: usize) -> Result<(), String> {
-        unimplemented!()
+        let (side, tick) = {
+            let order = self
+                .storage
+                .get_value(order_idx)
+                .ok_or_else(|| "order not found".to_string())?;
+            (order.side, order.tick)
+        };
+
+        match side {
+            Side::Ask => {
+                self.asks
+                    .remove_limit_order(&mut self.storage, tick, order_idx)?;
+            }
+            Side::Bid => {
+                self.bids
+                    .remove_limit_order(&mut self.storage, tick, order_idx)?;
+            }
+        }
+
+        self.storage
+            .get_mut_value(order_idx)
+            .expect("order vanished mid cancel")
+            .status = State::Canceled;
+
+        self.storage.remove_value(order_idx);
+
+        Ok(())
     }
 }
