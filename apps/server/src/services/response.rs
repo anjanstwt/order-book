@@ -68,6 +68,18 @@ impl<T> Response<T> {
         Response::new(true, code, data, message, None, Meta { timestamp })
     }
 
+    pub fn not_authorized() -> Self {
+        let timestamp = Utc::now();
+        Response::new(
+            false,
+            StatusCode::UNAUTHORIZED,
+            None,
+            Some("not authorized".to_string()),
+            None,
+            Meta { timestamp },
+        )
+    }
+
     pub fn system_error() -> Self {
         let timestamp = Utc::now();
         let code = StatusCode::INTERNAL_SERVER_ERROR;
