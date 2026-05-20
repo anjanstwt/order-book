@@ -1,14 +1,20 @@
 use axum::{Router, routing::get};
 
+pub mod controllers;
+pub mod routes;
+pub mod services;
+
 #[tokio::main]
 async fn main() {
+    services::Init::new();
+
     let app = Router::new().route("/", get(|| async { "Hello" }));
 
-    let port = "10.238.187.81:3000";
+    let addr = "10.238.187.81:3000";
 
-    let listener = tokio::net::TcpListener::bind(port).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
-    println!("your server is started at {port}");
+    println!("server started at {addr}");
 
     axum::serve(listener, app).await.unwrap();
 }
