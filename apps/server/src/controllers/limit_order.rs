@@ -1,5 +1,22 @@
-use crate::services::Response;
+use axum::{Extension, Json};
+use engine::{Quantity, Side, Tick};
+use serde::Deserialize;
 
-pub async fn limit_order_controller() -> Response<()> {
-    Response::not_authorized()
+use crate::{services::Response, types::AuthUser};
+
+#[derive(Deserialize)]
+struct LimitOrderBody {
+    market_id: String,
+    side: Side,
+    tick: Tick,
+    quantity: Quantity,
+}
+
+pub async fn limit_order_controller(
+    Extension(user): Extension<AuthUser>,
+    Json(body): Json<LimitOrderBody>,
+) -> Response<()> {
+    // check the user balance in db
+
+    unimplemented!()
 }
