@@ -6,14 +6,12 @@ use axum::{
 };
 
 use crate::{
-    controllers::{health_check_controller, limit_order_controller},
-    middlewares::auth,
-    services::Init,
+    controllers::health_check_controller, middlewares::auth, routes::order_routes,
+    services::Services,
 };
 
-pub fn router() -> Router<Arc<Init>> {
+pub fn router() -> Router<Arc<Services>> {
     Router::new()
         .route("/health", get(health_check_controller))
-        .route("/limit-order/place", post(limit_order_controller))
-        .layer(middleware::from_fn(auth))
+        .nest("/order", order_routes())
 }

@@ -7,9 +7,15 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 #[derive(Serialize)]
-struct Err {
+pub struct Err {
     code: String,
     details: Option<String>,
+}
+
+impl Err {
+    pub fn new(code: String, details: Option<String>) -> Self {
+        Self { code, details }
+    }
 }
 
 #[derive(Serialize)]
@@ -77,6 +83,19 @@ impl<T> Response<T> {
             Some("not authorized".to_string()),
             None,
             Meta { timestamp },
+        )
+    }
+
+    pub fn error(status_code: StatusCode, message: Option<String>, error: Option<Err>) -> Self {
+        Response::new(
+            false,
+            status_code,
+            None,
+            message,
+            error,
+            Meta {
+                timestamp: Utc::now(),
+            },
         )
     }
 

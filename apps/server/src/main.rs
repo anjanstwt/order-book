@@ -8,12 +8,14 @@ pub mod routes;
 pub mod services;
 pub mod types;
 
+pub use services::Services;
+
 #[tokio::main]
 async fn main() {
-    services::Init::env();
-    let init = services::Init::core().await;
+    Services::env();
+    let services = Services::core().await;
 
-    let app = Router::new().nest("/", router()).with_state(init);
+    let app = Router::new().nest("/", router()).with_state(services);
 
     let addr = "10.238.187.81:3000";
 

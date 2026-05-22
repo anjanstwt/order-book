@@ -1,6 +1,7 @@
 use serde::Deserialize;
+use uuid::Uuid;
 
-pub type OrderId = u64;
+pub type OrderId = Uuid;
 pub type Tick = u64;
 pub type Quantity = u64;
 pub type Sequence = u64;
