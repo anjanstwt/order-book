@@ -2,6 +2,7 @@
 members = [
     "apps/*",
     "packages/*",
+    "packages/database/migration",
 ]
 resolver = "3"
 

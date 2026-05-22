@@ -1,4 +1,4 @@
-use axum::{Router, routing::get};
+use axum::Router;
 
 use crate::routes::router;
 
@@ -11,9 +11,9 @@ pub mod types;
 #[tokio::main]
 async fn main() {
     services::Init::env();
-    services::Init::core();
+    let init = services::Init::core().await;
 
-    let app = Router::new().nest("/", router());
+    let app = Router::new().nest("/", router()).with_state(init);
 
     let addr = "10.238.187.81:3000";
 

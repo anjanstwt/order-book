@@ -1,16 +1,22 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf, sync::Arc};
 
+use database::connect;
 use engine::Engine;
+use sea_orm::DatabaseConnection;
 
 pub struct Init {
     pub engine: Engine,
+    pub db: DatabaseConnection,
 }
 
 impl Init {
-    pub fn core() -> Self {
-        Self {
+    pub async fn core() -> Arc<Self> {
+        let db = connect(&env::var("DATABASE_URL").unwrap()).await;
+
+        Arc::new(Self {
             engine: Engine::new(None),
-        }
+            db: db,
+        })
     }
 
     pub fn env() {
