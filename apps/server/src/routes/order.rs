@@ -12,14 +12,16 @@ use crate::{
 pub fn order_routes() -> Router<Arc<Services>> {
     Router::new()
         .nest("/limit", limit_routes())
-        .next("/market", market_routes())
+        .nest("/market", market_routes())
         .layer(middleware::from_fn(auth))
 }
 
 fn limit_routes() -> Router<Arc<Services>> {
-    Router::new().route("/place", post(limit_order_controller))
+    Router::new()
+        .route("/place", post(limit_order_controller))
+        .route("/cancel", get(|| async { "hello" }))
 }
 
 fn market_routes() -> Router<Arc<Services>> {
-    Router::new().route("/place", get(|| "hello"))
+    Router::new().route("/place", get(|| async { "hello" }))
 }

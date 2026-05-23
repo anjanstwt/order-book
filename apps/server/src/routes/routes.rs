@@ -1,14 +1,8 @@
 use std::sync::Arc;
 
-use axum::{
-    Router, middleware,
-    routing::{get, post},
-};
+use axum::{Router, routing::get};
 
-use crate::{
-    controllers::health_check_controller, middlewares::auth, routes::order_routes,
-    services::Services,
-};
+use crate::{controllers::health_check_controller, routes::order_routes, services::Services};
 
 pub fn router() -> Router<Arc<Services>> {
     Router::new()
