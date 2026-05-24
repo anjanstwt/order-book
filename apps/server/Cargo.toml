@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 engine = { path = "../../packages/engine" }
 database = { path = "../../packages/database" }
+events = { path = "../../packages/events" }
+
 axum = {version = "0.8.9", features = ["macros"]}
 tokio = { version = "1.52.3", features = ["full"] }
 chrono = { version = "0.4.44", features = ["serde"] }
@@ -16,3 +18,4 @@ dotenvy = "0.15.7"
 sea-orm = "1.1.20"
 uuid = { version = "1.23.1", features = ["v4"] }
 dashmap = "6.2.1"
+rdkafka = { version = "0.39.0", features = ["tokio", "cmake-build"]}

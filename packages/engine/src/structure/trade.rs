@@ -1,6 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::types::{OrderId, Quantity, Sequence, Side, Tick};
 
 // this will contain the actual trade
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Trade {
     pub sequence: Sequence,
     pub maker_order_id: OrderId,

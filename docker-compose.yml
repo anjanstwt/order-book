@@ -11,5 +11,36 @@ services:
     volumes:
       - order_book_data:/var/lib/postgresql/data
 
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v26.1.7
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned # this is used to tell redpanda that this is in local dev mode
+      - --smp=1 # assigning redpanda the amount of threads
+      - --memory=1G # Limiting redpanda to this much RAM
+      - --reserve-memory=0M # Redpanda needs some memory to reserve some data, but for dev mode we can ignore it
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092 # plaintext means no SSL/TLS connection for dev mode
+      - --advertise-kafka-addr=INTERNAL://redpanda:9092,EXTERNAL://localhost:19092
+    ports:
+      - "19092:19092"
+      - "9644:9644"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    container_name: redpanda-console
+    depends_on:
+      - redpanda
+    environment:
+      KAFKA_BROKERS: redpanda:9092   # talks to broker over Docker network via INTERNAL listener
+    ports:
+      - "8082:8080"
+
 volumes:
   order_book_data:
+  redpanda_data:

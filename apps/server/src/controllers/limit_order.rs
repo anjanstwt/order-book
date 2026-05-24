@@ -43,13 +43,7 @@ pub async fn limit_order_controller(
         return Response::system_error();
     };
 
-    let Ok(mut engine) = market.lock() else {
-        debug_print!(
-            "failed to get the engine of market id: {} \n",
-            body.market_id
-        );
-        return Response::system_error();
-    };
+    let mut engine = market.lock().await;
 
     let Ok(report) = engine.submit_limit_order(order_id, body.side, body.tick, body.quantity)
     else {
@@ -60,6 +54,8 @@ pub async fn limit_order_controller(
         );
     };
     drop(engine);
+
+    // pass the report to the redpanda
 
     Response::success(
         Some(()),

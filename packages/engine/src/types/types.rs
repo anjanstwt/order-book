@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub type OrderId = Uuid;
@@ -6,7 +6,7 @@ pub type Tick = u64;
 pub type Quantity = u64;
 pub type Sequence = u64;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Side {
     Ask,
     Bid,
