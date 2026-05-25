@@ -9,11 +9,11 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub market_id: Uuid,
-    pub quantity: i32,
-    pub tick: i32,
-    pub idx: Option<i32>,
+    pub quantity: i64,
+    pub tick: i64,
+    pub idx: Option<i64>,
     pub status: OrderStatus,
-    pub remaining_quantity: Option<i32>,
+    pub remaining_quantity: Option<i64>,
     pub created_at: Option<DateTime>,
 }
 
