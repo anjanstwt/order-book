@@ -1,7 +1,8 @@
 use std::{env, sync::Arc};
 
 use axum::{Json, extract::State, http::StatusCode};
-use jsonwebtoken::{EncodingKey, Header, encode};
+use chrono::Utc;
+use jsonwebtoken::{EncodingKey, Header, encode, get_current_timestamp};
 use sea_orm::{EntityTrait, Set, sea_query::OnConflict};
 use serde::{Deserialize, Serialize};
 
@@ -23,9 +24,10 @@ pub struct ResponseData {
     token: String,
 }
 
+#[axum::debug_handler]
 pub async fn signin_controller(
-    Json(body): Json<SigninBody>,
     State(service): State<Arc<Services>>,
+    Json(body): Json<SigninBody>,
 ) -> Response<ResponseData> {
     let Ok(user) = user::Entity::insert(user::ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -46,7 +48,8 @@ pub async fn signin_controller(
 
     let secret = env::var("AUTH_SECRET").unwrap();
 
-    let auth = AuthUser::new(user.id, user.email, user.name, user.image);
+    let exp = get_current_timestamp() * 60 * 60 * 24 * 30;
+    let auth = AuthUser::new(user.id, user.email, user.name, user.image, exp);
 
     let Ok(token) = encode(
         &Header::default(),

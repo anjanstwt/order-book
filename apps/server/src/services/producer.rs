@@ -13,7 +13,9 @@ impl Producer {
         key: String,
         payload: Vec<u8>,
     ) -> Result<Delivery, ()> {
-        let record = FutureRecord::to("order.events").key(&key).payload(&payload);
+        let record = FutureRecord::to("orders.events")
+            .key(&key)
+            .payload(&payload);
 
         let delivery = producer
             .send(record, Timeout::After(Duration::from_secs(5)))

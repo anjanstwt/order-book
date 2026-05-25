@@ -1,7 +1,9 @@
 use axum::Router;
+use uuid::Uuid;
 
 use crate::routes::router;
 
+pub mod config;
 pub mod controllers;
 pub mod middlewares;
 pub mod routes;
@@ -12,8 +14,9 @@ pub use services::Services;
 
 #[tokio::main]
 async fn main() {
-    Services::env();
+    // load all the services
     let services = Services::core().await;
+    services.add_market(Uuid::nil(), None);
 
     let app = Router::new().nest("/api/v1", router()).with_state(services);
 

@@ -1,5 +1,3 @@
-use std::env;
-
 use rdkafka::{
     ClientConfig,
     admin::{AdminClient, AdminOptions, NewTopic, TopicReplication},
@@ -10,9 +8,7 @@ use rdkafka::{
 pub struct Kafka;
 
 impl Kafka {
-    pub fn future_producer() -> FutureProducer {
-        let kafka_brokers = &env::var("KAFKA_BROKERS").expect("no kafka brokers found");
-
+    pub fn future_producer(kafka_brokers: &str) -> FutureProducer {
         let producer = ClientConfig::new()
             .set("bootstrap.servers", kafka_brokers)
             .set("client.id", "order-book-id")

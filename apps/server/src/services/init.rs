@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use dashmap::DashMap;
 use database::connect;
@@ -7,9 +7,10 @@ use rdkafka::producer::FutureProducer;
 use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 
-use crate::{services::Kafka, types::MarketId};
+use crate::{config::Env, services::Kafka, types::MarketId};
 
 pub struct Services {
+    pub env: Env,
     pub db: DatabaseConnection,
     pub producer: FutureProducer,
     pub markets: DashMap<MarketId, Mutex<Engine>>,
@@ -17,28 +18,28 @@ pub struct Services {
 
 impl Services {
     pub async fn core() -> Arc<Self> {
-        let db = connect(&env::var("DATABASE_URL").expect("no database url found")).await;
+        // load the environment variables
+        let env = Env::load();
 
-        let kafka_brokers = &env::var("KAFKA_BROKERS").expect("no kafka brokers found");
+        // connect the database
+        let db = connect(&env.database_url).await;
 
         // creating the kafka topic
-        Kafka::create_topic("orders.events", kafka_brokers).await;
+        Kafka::create_topic("orders.events", &env.kafka_brokers).await;
 
-        let producer = Kafka::future_producer();
+        // create a new future producer
+        let producer = Kafka::future_producer(&env.kafka_brokers);
 
+        // return the thread safe pointer reference
         Arc::new(Self {
+            env,
             db: db,
             producer,
             markets: DashMap::new(),
         })
     }
 
-    pub fn env() {
-        let root_env = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.env");
-        dotenvy::from_path(root_env).expect(".env not setted up");
-    }
-
-    pub fn add_market(&mut self, id: MarketId, capacity_ticks: Option<u64>) {
+    pub fn add_market(&self, id: MarketId, capacity_ticks: Option<u64>) {
         self.markets
             .insert(id, Mutex::new(Engine::new(capacity_ticks)));
     }
