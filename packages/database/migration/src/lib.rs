@@ -2,6 +2,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20260522_031929_create_users;
 mod m20260523_165027_update_user_image;
+mod m20260525_184648_create_orders;
 
 pub struct Migrator;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20260522_031929_create_users::Migration),
             Box::new(m20260523_165027_update_user_image::Migration),
+            Box::new(m20260525_184648_create_orders::Migration),
         ]
     }
 }
