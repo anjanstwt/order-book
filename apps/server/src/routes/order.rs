@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use axum::{
-    Router, middleware,
-    routing::{get, post},
-};
+use axum::{Router, middleware, routing::post};
 
 use crate::{
-    controllers::limit_order::limit_order_controller, middlewares::auth::auth, services::Services,
+    controllers::{
+        cancel_order_controller, limit_order::limit_order_controller, market_order_controller,
+    },
+    middlewares::auth::auth,
+    services::Services,
 };
 
 pub fn order_routes() -> Router<Arc<Services>> {
@@ -19,9 +20,9 @@ pub fn order_routes() -> Router<Arc<Services>> {
 fn limit_routes() -> Router<Arc<Services>> {
     Router::new()
         .route("/place", post(limit_order_controller))
-        .route("/cancel", get(|| async { "hello" }))
+        .route("/cancel", post(cancel_order_controller))
 }
 
 fn market_routes() -> Router<Arc<Services>> {
-    Router::new().route("/place", get(|| async { "hello" }))
+    Router::new().route("/place", post(market_order_controller))
 }
