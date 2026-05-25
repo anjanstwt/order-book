@@ -1,6 +1,7 @@
 use rdkafka::{
     ClientConfig,
     admin::{AdminClient, AdminOptions, NewTopic, TopicReplication},
+    consumer::StreamConsumer,
     producer::FutureProducer,
     types::RDKafkaErrorCode,
 };
@@ -17,10 +18,22 @@ impl Kafka {
             .set("compression.type", "lz4")
             .set("linger.ms", "5")
             .set("message.timeout.ms", "5000")
-            .create()
+            .create::<FutureProducer>()
             .expect("Failed to create producer");
 
         producer
+    }
+
+    pub fn stream_consumer(kafka_brokers: &str, group_id: &str) -> StreamConsumer {
+        let consumer = ClientConfig::new()
+            .set("bootstrap.servers", kafka_brokers)
+            .set("group.id", group_id)
+            .set("enable.auto.commit", "false")
+            .set("auto.offset.reset", "earliest")
+            .create::<StreamConsumer>()
+            .expect("Failed to create consumer group");
+
+        consumer
     }
 
     pub async fn create_topic(topic: &str, kafka_brokers: &str) {

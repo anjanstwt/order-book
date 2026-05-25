@@ -1,0 +1,37 @@
+use std::sync::Arc;
+
+use events::OrderEvent;
+use rdkafka::{Message, consumer::Consumer as KafkaConsumer};
+
+use crate::{Services, services::Kafka};
+
+pub struct Consumer;
+
+impl Consumer {
+    pub async fn spawn(services: Arc<Services>) {
+        tokio::spawn(async { Consumer::run(services).await });
+    }
+
+    async fn run(services: Arc<Services>) {
+        let consumer = Kafka::stream_consumer(&services.env.kafka_brokers, "db-writer");
+
+        consumer
+            .subscribe(&["orders.events"])
+            .expect("failed to subscribe to topics");
+
+        loop {
+            match consumer.recv().await {
+                Ok(msg) => {
+                    let Some(payload) = msg.payload() else {
+                        continue;
+                    };
+                    match serde_json::from_slice::<OrderEvent>(payload) {
+                        Ok(event) => println!("consumed: {event:?}"),
+                        Err(e) => eprintln!("Invalid event payload: {e}"),
+                    }
+                }
+                Err(e) => eprintln!("kafka recv error: {e}"),
+            }
+        }
+    }
+}
