@@ -13,7 +13,7 @@ pub enum Side {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum State {
+pub enum Status {
     New,
     Resting,
     PartiallyFilled,

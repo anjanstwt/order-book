@@ -15,7 +15,7 @@ async fn main() {
     Services::env();
     let services = Services::core().await;
 
-    let app = Router::new().nest("/", router()).with_state(services);
+    let app = Router::new().nest("/api/v1", router()).with_state(services);
 
     let addr = "0.0.0.0:8080";
 

@@ -3,7 +3,7 @@ use crate::{
     engine::MatchReport,
     storage::Storage,
     structure::{Order, Trade},
-    types::{DEFAULT_CAPACITY_TICKS, OrderId, Quantity, Sequence, Side, State, Tick},
+    types::{DEFAULT_CAPACITY_TICKS, OrderId, Quantity, Sequence, Side, Status, Tick},
 };
 
 pub struct Engine {
@@ -102,13 +102,13 @@ impl Engine {
                 self.storage
                     .get_mut_value(order_idx)
                     .expect("just inserted order is missing")
-                    .status = State::PartiallyFilled;
-                taker_status = State::PartiallyFilled;
+                    .status = Status::PartiallyFilled;
+                taker_status = Status::PartiallyFilled;
             } else {
-                taker_status = State::Resting;
+                taker_status = Status::Resting;
             }
         } else {
-            taker_status = State::Filled;
+            taker_status = Status::Filled;
         }
 
         Ok(MatchReport::new(
@@ -164,14 +164,14 @@ impl Engine {
         }
 
         let filled = quantity - remaining;
-        let taker_status: State;
+        let taker_status: Status;
 
         if remaining == 0 {
-            taker_status = State::Filled;
+            taker_status = Status::Filled;
         } else if filled > 0 {
-            taker_status = State::PartiallyFilled;
+            taker_status = Status::PartiallyFilled;
         } else {
-            taker_status = State::Canceled;
+            taker_status = Status::Canceled;
         }
 
         Ok(MatchReport::new(
@@ -207,7 +207,7 @@ impl Engine {
         self.storage
             .get_mut_value(order_idx)
             .expect("order vanished mid cancel")
-            .status = State::Canceled;
+            .status = Status::Canceled;
 
         self.storage.remove_value(order_idx);
 

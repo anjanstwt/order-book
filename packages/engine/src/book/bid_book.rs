@@ -1,7 +1,7 @@
 use crate::{
     storage::Storage,
     structure::{BitMap, Order, PriceLevel, Trade},
-    types::{DEFAULT_CAPACITY_TICKS, OrderId, Quantity, Sequence, Side, State, Tick},
+    types::{DEFAULT_CAPACITY_TICKS, OrderId, Quantity, Sequence, Side, Status, Tick},
 };
 
 pub struct BidBook {
@@ -141,14 +141,14 @@ impl BidBook {
                 storage
                     .get_mut_value(head_idx)
                     .expect("maker missing")
-                    .status = State::Filled;
+                    .status = Status::Filled;
                 // clean the order from storage
                 storage.remove_value(head_idx);
             } else {
                 // maker is partially filled
                 let maker = storage.get_mut_value(head_idx).expect("maker missing");
                 maker.remaining_quantity -= fill_quantity;
-                maker.status = State::PartiallyFilled;
+                maker.status = Status::PartiallyFilled;
                 level.total_volume -= fill_quantity;
                 break;
             }

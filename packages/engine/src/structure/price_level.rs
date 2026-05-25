@@ -1,7 +1,7 @@
 use crate::{
     storage::Storage,
     structure::Order,
-    types::{Quantity, State, Tick},
+    types::{Quantity, Status, Tick},
 };
 
 pub struct PriceLevel {
@@ -37,7 +37,7 @@ impl PriceLevel {
                 order.tick, self.tick,
             );
             assert!(
-                matches!(order.status, State::New | State::PartiallyFilled),
+                matches!(order.status, Status::New | Status::PartiallyFilled),
                 "It's not a new order"
             );
             debug_assert!(order.remaining_quantity > 0, "zero quantity found");
@@ -48,8 +48,8 @@ impl PriceLevel {
             self.total_volume += order.remaining_quantity;
             order.prev_order = None;
             order.next_order = None;
-            if order.status == State::New {
-                order.status = State::Resting;
+            if order.status == Status::New {
+                order.status = Status::Resting;
             }
             return;
         }
@@ -71,7 +71,7 @@ impl PriceLevel {
                 "order tick {} and level tick {} are not equal",
                 order.tick, self.tick,
             );
-            assert_eq!(order.status, State::New, "It's not a new order");
+            assert_eq!(order.status, Status::New, "It's not a new order");
             debug_assert!(order.remaining_quantity > 0, "zero quantity found");
 
             // update the new order with next and prev
@@ -81,8 +81,8 @@ impl PriceLevel {
             // increase the total volume and order count
             self.total_volume += order.remaining_quantity;
             self.order_count += 1;
-            if order.status == State::New {
-                order.status = State::Resting;
+            if order.status == Status::New {
+                order.status = Status::Resting;
             }
         }
         // point the tail order to the new order index
@@ -111,7 +111,7 @@ impl PriceLevel {
                 order.tick, self.tick,
             );
             assert!(
-                matches!(order.status, State::Resting | State::PartiallyFilled),
+                matches!(order.status, Status::Resting | Status::PartiallyFilled),
                 "order not live"
             );
 

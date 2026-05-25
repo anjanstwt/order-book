@@ -1,4 +1,4 @@
-use crate::types::{OrderId, Quantity, Sequence, Side, State, Tick};
+use crate::types::{OrderId, Quantity, Sequence, Side, Status, Tick};
 
 pub struct Order {
     pub id: OrderId,
@@ -7,7 +7,7 @@ pub struct Order {
     pub quantity: Quantity,
     pub remaining_quantity: Quantity,
     pub sequence: Sequence,
-    pub status: State,
+    pub status: Status,
     pub prev_order: Option<usize>,
     pub next_order: Option<usize>,
 }
@@ -27,7 +27,7 @@ impl Order {
             quantity,
             remaining_quantity: quantity,
             sequence,
-            status: State::New,
+            status: Status::New,
             prev_order: None,
             next_order: None,
         }

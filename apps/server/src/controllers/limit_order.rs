@@ -1,13 +1,15 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use axum::{Extension, Json, extract::State, http::StatusCode};
+use chrono::Utc;
 use engine::{Quantity, Side, Tick};
+use events::OrderEvent;
 use sea_orm::{EntityTrait, debug_print};
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    services::{Response, Services},
+    services::{Producer, Response, Services},
     types::AuthUser,
 };
 
@@ -55,15 +57,40 @@ pub async fn limit_order_controller(
     };
     drop(engine);
 
-    // pass the report to the redpanda
+    let event = match OrderEvent::convert(
+        body.market_id,
+        &report,
+        Utc::now(),
+        report.resting_order_idx,
+    ) {
+        Ok(event) => event,
+        Err(err) => {
+            eprintln!("error while converting report to event {err}");
+            return Response::system_error();
+        }
+    };
 
-    Response::success(
-        Some(()),
-        Some("successfully placed order".to_string()),
-        None,
-    );
+    let Ok(payload) = serde_json::to_vec(&event) else {
+        eprintln!("Failed to serialize event");
+        return Response::system_error();
+    };
 
-    // add the complete report in the database via queue
-
-    unimplemented!()
+    match Producer::send(&service.producer, body.market_id.to_string(), payload).await {
+        Ok(delivery) => {
+            println!(
+                "published to partition {}, offset {}",
+                delivery.partition, delivery.offset
+            );
+            Response::success(
+                Some(()),
+                Some("order placed successfully".to_string()),
+                None,
+            )
+        }
+        Err(_e) => Response::error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            Some("Order went to engine but failed to publish.".to_string()),
+            None,
+        ),
+    }
 }

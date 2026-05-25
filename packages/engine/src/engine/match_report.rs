@@ -1,12 +1,12 @@
 use crate::{
     structure::Trade,
-    types::{OrderId, Quantity, State},
+    types::{OrderId, Quantity, Status},
 };
 
 // this is the report that user will see about their order
 pub struct MatchReport {
     pub taker_order_id: OrderId,
-    pub taker_status: State,
+    pub taker_status: Status,
     pub filled_quantity: Quantity,
     pub remaining_quantity: Quantity,
     pub trades: Vec<Trade>,
@@ -16,7 +16,7 @@ pub struct MatchReport {
 impl MatchReport {
     pub fn new(
         taker_order_id: OrderId,
-        taker_status: State,
+        taker_status: Status,
         filled_quantity: Quantity,
         remaining_quantity: Quantity,
         trades: Vec<Trade>,
