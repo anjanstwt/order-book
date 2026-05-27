@@ -1,7 +1,6 @@
 use std::{env, sync::Arc};
 
 use axum::{Json, extract::State, http::StatusCode};
-use chrono::Utc;
 use jsonwebtoken::{EncodingKey, Header, encode, get_current_timestamp};
 use sea_orm::{EntityTrait, Set, sea_query::OnConflict};
 use serde::{Deserialize, Serialize};

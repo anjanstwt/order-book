@@ -12,3 +12,6 @@ pub use producer::*;
 
 pub mod consumer;
 pub use consumer::*;
+
+pub mod db_writer;
+pub use db_writer::*;

@@ -5,5 +5,6 @@ pub mod prelude;
 pub mod market;
 pub mod order;
 pub mod sea_orm_active_enums;
+pub mod trade;
 pub mod user;
 pub mod users;

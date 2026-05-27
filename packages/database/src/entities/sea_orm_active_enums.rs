@@ -18,3 +18,11 @@ pub enum OrderStatus {
     #[sea_orm(string_value = "rejected")]
     Rejected,
 }
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "side")]
+pub enum Side {
+    #[sea_orm(string_value = "bid")]
+    Bid,
+    #[sea_orm(string_value = "ask")]
+    Ask,
+}

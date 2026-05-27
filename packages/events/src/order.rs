@@ -1,48 +1,61 @@
 use chrono::{DateTime, Utc};
-use engine::{MatchReport, OrderId, Quantity, Status, Trade};
+use engine::{MatchReport, OrderId, Quantity, Side, Status, Tick, Trade};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Metadata {
+    pub user_id: Uuid,
+    pub market_id: Uuid,
+    pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum OrderEvent {
-    Placed {
-        market_id: Uuid,
-        timestamp: DateTime<Utc>,
+    Resting {
+        metadata: Metadata,
         order_id: OrderId,
-        order_idx: Option<usize>,
+        order_idx: usize,
+        quantity: Quantity,
+        tick: Tick,
+        side: Side,
     },
     Filled {
-        market_id: Uuid,
-        timestamp: DateTime<Utc>,
+        metadata: Metadata,
         order_id: OrderId,
+        quantity: Quantity,
         trades: Vec<Trade>,
+        side: Side,
     },
+    // this just requires the order id rest will be marked as cancelled in db
     Cancelled {
-        market_id: Uuid,
-        timestamp: DateTime<Utc>,
+        metadata: Metadata,
         order_id: OrderId,
-        order_idx: Option<usize>,
+        order_idx: usize,
+        tick: Tick,
+        side: Side,
     },
     PartiallyFilled {
-        market_id: Uuid,
-        timestamp: DateTime<Utc>,
+        metadata: Metadata,
         order_id: OrderId,
         filled_quantity: Quantity,
         remaining_quantity: Quantity,
-        resting_order_idx: Option<usize>,
+        order_idx: usize,
         trades: Vec<Trade>,
+        side: Side,
     },
     Rejected {
-        market_id: Uuid,
-        timestamp: DateTime<Utc>,
+        metadata: Metadata,
         order_id: OrderId,
         quantity: Quantity,
+        side: Side,
     },
 }
 
 impl OrderEvent {
     pub fn convert(
+        user_id: Uuid,
         market_id: Uuid,
         report: &MatchReport,
         timestamp: DateTime<Utc>,
@@ -50,40 +63,60 @@ impl OrderEvent {
     ) -> Result<Self, String> {
         match report.taker_status {
             Status::Filled => Ok(OrderEvent::Filled {
-                market_id,
-                timestamp,
+                metadata: Metadata {
+                    user_id,
+                    market_id,
+                    timestamp,
+                },
                 order_id: report.taker_order_id,
                 trades: report.trades.clone(),
+                side: report.taker_side,
             }),
-            Status::Resting => Ok(OrderEvent::Placed {
-                market_id,
-                timestamp,
+            Status::Resting => Ok(OrderEvent::Resting {
+                metadata: Metadata {
+                    user_id,
+                    market_id,
+                    timestamp,
+                },
                 order_id: report.taker_order_id,
                 order_idx: report.resting_order_idx,
+                side: report.taker_side,
             }),
             Status::PartiallyFilled => Ok(OrderEvent::PartiallyFilled {
-                market_id,
-                timestamp,
+                metadata: Metadata {
+                    user_id,
+                    market_id,
+                    timestamp,
+                },
                 order_id: report.taker_order_id,
                 filled_quantity: report.filled_quantity,
                 remaining_quantity: report.remaining_quantity,
-                resting_order_idx: report.resting_order_idx,
+                order_idx: report.resting_order_idx,
                 trades: report.trades.clone(),
+                side: report.taker_side,
             }),
             Status::Canceled => Ok(OrderEvent::Cancelled {
-                market_id,
-                timestamp,
+                metadata: Metadata {
+                    user_id,
+                    market_id,
+                    timestamp,
+                },
                 order_id: report.taker_order_id,
                 order_idx,
+                side: report.taker_side,
             }),
             Status::Rejected => Ok(OrderEvent::Rejected {
-                market_id,
-                timestamp,
+                metadata: Metadata {
+                    user_id,
+                    market_id,
+                    timestamp,
+                },
                 order_id: report.taker_order_id,
                 quantity: report.remaining_quantity,
+                side: report.taker_side,
             }),
             Status::New => Err(format!(
-                "order {} has status New, which has no corresponding OrderEvent",
+                "order {} with New status means it failed to register in engine",
                 report.taker_order_id
             )),
         }

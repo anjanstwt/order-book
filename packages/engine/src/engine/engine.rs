@@ -114,6 +114,7 @@ impl Engine {
         Ok(MatchReport::new(
             id,
             taker_status,
+            side,
             filled,
             remaining,
             trades,
@@ -177,6 +178,7 @@ impl Engine {
         Ok(MatchReport::new(
             id,
             taker_status,
+            side,
             filled,
             remaining,
             trades,

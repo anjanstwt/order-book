@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use chrono::Utc;
+use engine::Side;
 use events::OrderEvent;
 use sea_orm::EntityTrait;
 use serde::Deserialize;
@@ -17,6 +18,7 @@ use crate::{
 pub struct CancelOrderBody {
     market_id: Uuid,
     order_idx: usize,
+    side: Side,
 }
 
 pub async fn cancel_order_controller(
@@ -54,6 +56,7 @@ pub async fn cancel_order_controller(
         timestamp: Utc::now(),
         order_id: Uuid::new_v4(),
         order_idx: Some(body.order_idx),
+        side: body.side,
     };
 
     let Ok(payload) = serde_json::to_vec(&event) else {

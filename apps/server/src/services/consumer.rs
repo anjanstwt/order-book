@@ -3,7 +3,10 @@ use std::sync::Arc;
 use events::OrderEvent;
 use rdkafka::{Message, consumer::Consumer as KafkaConsumer};
 
-use crate::{Services, services::Kafka};
+use crate::{
+    Services,
+    services::{DbWriter, Kafka},
+};
 
 pub struct Consumer;
 
@@ -20,18 +23,27 @@ impl Consumer {
             .expect("failed to subscribe to topics");
 
         loop {
-            match consumer.recv().await {
-                Ok(msg) => {
-                    let Some(payload) = msg.payload() else {
-                        continue;
-                    };
-                    match serde_json::from_slice::<OrderEvent>(payload) {
-                        Ok(event) => println!("consumed: {event:?}"),
-                        Err(e) => eprintln!("Invalid event payload: {e}"),
-                    }
+            let msg = match consumer.recv().await {
+                Ok(msg) => msg,
+                Err(e) => {
+                    eprintln!("kafka recv error: {e}");
+                    return;
                 }
-                Err(e) => eprintln!("kafka recv error: {e}"),
-            }
+            };
+
+            let Some(payload) = msg.payload() else {
+                continue;
+            };
+
+            let event = match serde_json::from_slice::<OrderEvent>(payload) {
+                Ok(event) => event,
+                Err(e) => {
+                    eprintln!("Invalid event payload: {e}");
+                    return;
+                }
+            };
+
+            DbWriter::add_order(event, Arc::clone(&services));
         }
     }
 }

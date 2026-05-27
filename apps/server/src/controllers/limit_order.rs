@@ -58,6 +58,7 @@ pub async fn limit_order_controller(
     drop(engine);
 
     let event = match OrderEvent::convert(
+        user.id,
         body.market_id,
         &report,
         Utc::now(),
@@ -94,4 +95,3 @@ pub async fn limit_order_controller(
         ),
     }
 }
-
