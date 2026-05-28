@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use chrono::Utc;
-use engine::Side;
-use events::OrderEvent;
+use engine::{Side, Status};
+use events::{Metadata, OrderEvent};
 use sea_orm::EntityTrait;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -51,12 +51,20 @@ pub async fn cancel_order_controller(
         );
     };
 
-    let event = OrderEvent::Cancelled {
-        market_id: body.market_id,
-        timestamp: Utc::now(),
+    let event = OrderEvent {
+        metadata: Metadata {
+            user_id: user.id,
+            market_id: body.market_id,
+            timestamp: Utc::now(),
+        },
         order_id: Uuid::new_v4(),
         order_idx: Some(body.order_idx),
+        quantity: 0,
         side: body.side,
+        tick: None,
+        status: Status::Canceled,
+        filled_quantity: 0,
+        trades: None,
     };
 
     let Ok(payload) = serde_json::to_vec(&event) else {

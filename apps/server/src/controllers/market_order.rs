@@ -50,7 +50,7 @@ pub async fn market_order_controller(
         );
     };
 
-    let event = match OrderEvent::convert(body.market_id, &report, Utc::now(), None) {
+    let event = match OrderEvent::convert(user.id, body.market_id, &report, Utc::now(), None) {
         Ok(event) => event,
         Err(err) => {
             eprintln!("error while converting report to event {err}");

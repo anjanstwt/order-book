@@ -62,7 +62,7 @@ pub async fn limit_order_controller(
         body.market_id,
         &report,
         Utc::now(),
-        report.resting_order_idx,
+        Some(body.tick),
     ) {
         Ok(event) => event,
         Err(err) => {

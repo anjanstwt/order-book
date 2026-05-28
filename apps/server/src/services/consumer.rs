@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use events::OrderEvent;
-use rdkafka::{Message, consumer::Consumer as KafkaConsumer};
+use rdkafka::{
+    Message,
+    consumer::{CommitMode, Consumer as KafkaConsumer},
+};
 
 use crate::{
     Services,
@@ -43,7 +46,11 @@ impl Consumer {
                 }
             };
 
-            DbWriter::add_order(event, Arc::clone(&services));
+            if DbWriter::add_order(event, Arc::clone(&services)).await {
+                if let Err(e) = consumer.commit_message(&msg, CommitMode::Async) {
+                    eprintln!("failed to commit offset: {e}");
+                }
+            }
         }
     }
 }

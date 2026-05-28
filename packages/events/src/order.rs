@@ -11,46 +11,16 @@ pub struct Metadata {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
-pub enum OrderEvent {
-    Resting {
-        metadata: Metadata,
-        order_id: OrderId,
-        order_idx: usize,
-        quantity: Quantity,
-        tick: Tick,
-        side: Side,
-    },
-    Filled {
-        metadata: Metadata,
-        order_id: OrderId,
-        quantity: Quantity,
-        trades: Vec<Trade>,
-        side: Side,
-    },
-    // this just requires the order id rest will be marked as cancelled in db
-    Cancelled {
-        metadata: Metadata,
-        order_id: OrderId,
-        order_idx: usize,
-        tick: Tick,
-        side: Side,
-    },
-    PartiallyFilled {
-        metadata: Metadata,
-        order_id: OrderId,
-        filled_quantity: Quantity,
-        remaining_quantity: Quantity,
-        order_idx: usize,
-        trades: Vec<Trade>,
-        side: Side,
-    },
-    Rejected {
-        metadata: Metadata,
-        order_id: OrderId,
-        quantity: Quantity,
-        side: Side,
-    },
+pub struct OrderEvent {
+    pub metadata: Metadata,
+    pub order_id: OrderId,
+    pub order_idx: Option<usize>,
+    pub quantity: Quantity,
+    pub side: Side,
+    pub tick: Option<Tick>,
+    pub status: Status,
+    pub filled_quantity: Quantity,
+    pub trades: Option<Vec<Trade>>,
 }
 
 impl OrderEvent {
@@ -59,66 +29,35 @@ impl OrderEvent {
         market_id: Uuid,
         report: &MatchReport,
         timestamp: DateTime<Utc>,
-        order_idx: Option<usize>,
+        tick: Option<Tick>,
     ) -> Result<Self, String> {
-        match report.taker_status {
-            Status::Filled => Ok(OrderEvent::Filled {
-                metadata: Metadata {
-                    user_id,
-                    market_id,
-                    timestamp,
-                },
-                order_id: report.taker_order_id,
-                trades: report.trades.clone(),
-                side: report.taker_side,
-            }),
-            Status::Resting => Ok(OrderEvent::Resting {
-                metadata: Metadata {
-                    user_id,
-                    market_id,
-                    timestamp,
-                },
-                order_id: report.taker_order_id,
-                order_idx: report.resting_order_idx,
-                side: report.taker_side,
-            }),
-            Status::PartiallyFilled => Ok(OrderEvent::PartiallyFilled {
-                metadata: Metadata {
-                    user_id,
-                    market_id,
-                    timestamp,
-                },
-                order_id: report.taker_order_id,
-                filled_quantity: report.filled_quantity,
-                remaining_quantity: report.remaining_quantity,
-                order_idx: report.resting_order_idx,
-                trades: report.trades.clone(),
-                side: report.taker_side,
-            }),
-            Status::Canceled => Ok(OrderEvent::Cancelled {
-                metadata: Metadata {
-                    user_id,
-                    market_id,
-                    timestamp,
-                },
-                order_id: report.taker_order_id,
-                order_idx,
-                side: report.taker_side,
-            }),
-            Status::Rejected => Ok(OrderEvent::Rejected {
-                metadata: Metadata {
-                    user_id,
-                    market_id,
-                    timestamp,
-                },
-                order_id: report.taker_order_id,
-                quantity: report.remaining_quantity,
-                side: report.taker_side,
-            }),
-            Status::New => Err(format!(
+        if let Status::New = report.taker_status {
+            return Err(format!(
                 "order {} with New status means it failed to register in engine",
                 report.taker_order_id
-            )),
+            ));
         }
+
+        let trades = if report.trades.is_empty() {
+            None
+        } else {
+            Some(report.trades.clone())
+        };
+
+        Ok(OrderEvent {
+            metadata: Metadata {
+                user_id,
+                market_id,
+                timestamp,
+            },
+            order_id: report.taker_order_id,
+            order_idx: report.resting_order_idx,
+            quantity: report.filled_quantity + report.remaining_quantity,
+            side: report.taker_side,
+            tick,
+            status: report.taker_status,
+            filled_quantity: report.filled_quantity,
+            trades,
+        })
     }
 }
