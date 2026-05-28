@@ -8,7 +8,7 @@ use database::{
 };
 use engine::{Side, Status, Trade};
 use events::OrderEvent;
-use futures::future::join_all;
+use futures::{StreamExt, stream};
 use sea_orm::{
     ActiveValue::{Set, Unchanged},
     DbErr, EntityTrait,
@@ -46,16 +46,39 @@ impl DbWriter {
         };
 
         // idempotent: replays of the same event hit the primary key and are skipped
-        let res = order::Entity::insert(model)
+        let future_order = order::Entity::insert(model)
             .on_conflict(
                 OnConflict::column(order::Column::Id)
                     .do_nothing()
                     .to_owned(),
             )
-            .exec(&service.db)
-            .await;
+            .exec(&service.db);
 
-        match res {
+        if let Some(trades) = &event.trades {
+            let (trades_result, order_result) = tokio::join!(
+                Self::write_trades(
+                    event.metadata.market_id,
+                    event.metadata.timestamp.naive_utc(),
+                    trades,
+                    service
+                ),
+                future_order,
+            );
+
+            match order_result {
+                Ok(_) => {}
+                // do_nothing returns this when the row already existed, a benign replay
+                Err(DbErr::RecordNotInserted) => {}
+                Err(e) => {
+                    eprintln!("failed to write order {}: {e}", event.order_id);
+                    return false;
+                }
+            }
+
+            return true && trades_result;
+        }
+
+        match future_order.await {
             Ok(_) => {}
             // do_nothing returns this when the row already existed, a benign replay
             Err(DbErr::RecordNotInserted) => {}
@@ -65,97 +88,58 @@ impl DbWriter {
             }
         }
 
-        if let Some(trades) = &event.trades {
-            return Self::write_trades(event.metadata.market_id, now, trades, service).await;
-        }
-
-        true
-    }
-
-    async fn write_trade(
-        market_id: Uuid,
-        now: NaiveDateTime,
-        trades: &[Trade],
-        services: &Arc<Services>,
-    ) -> bool {
-        let future_trades = trades.iter().map(|trade| {
-            let trade_id = Uuid::new_v5(&market_id, &trade.sequence.to_le_bytes());
-
-            let model = trade::ActiveModel {
-                id: Set(trade_id),
-                market_id: Set(market_id),
-                sequence: Set(trade.sequence as i64),
-                maker_order_id: Set(trade.maker_order_id),
-                taker_order_id: Set(trade.taker_order_id),
-                maker_side: Set(Some(Self::map_side(&trade.maker_side))),
-                tick: Set(trade.tick as i64),
-                quantity: Set(trade.quantity as i64),
-                created_at: Set(now),
-            };
-
-            async move {
-                trade::Entity::insert(model)
-                    .on_conflict(
-                        OnConflict::column(trade::Column::Id)
-                            .do_nothing()
-                            .to_owned(),
-                    )
-                    .exec(&services.db)
-                    .await
-            }
-        });
-
-        let results = join_all(future_trades).await;
-
-        for result in results {
-            if let Err(e) = result {
-                eprintln!("failed to write trade: {e}");
-                return false;
-            }
-        }
-
         true
     }
 
     async fn write_trades(
         market_id: Uuid,
-        now: chrono::NaiveDateTime,
-        trades: &[engine::Trade],
-        service: &Arc<Services>,
+        now: NaiveDateTime,
+        trades: &[Trade],
+        services: &Arc<Services>,
     ) -> bool {
-        for t in trades {
-            // deterministic id from (market, sequence) so replays don't duplicate trades
-            let trade_id = Uuid::new_v5(&market_id, &t.sequence.to_be_bytes());
+        let results = stream::iter(trades)
+            .map(|trade| {
+                let services = Arc::clone(&services);
 
-            let model = trade::ActiveModel {
-                id: Set(trade_id),
-                market_id: Set(market_id),
-                sequence: Set(t.sequence as i64),
-                maker_order_id: Set(t.maker_order_id),
-                taker_order_id: Set(t.taker_order_id),
-                maker_side: Set(Some(Self::map_side(&t.maker_side))),
-                tick: Set(t.tick as i64),
-                quantity: Set(t.quantity as i64),
-                created_at: Set(now),
-            };
+                async move {
+                    let trade_id = Uuid::new_v5(&market_id, &trade.sequence.to_le_bytes());
 
-            let res = trade::Entity::insert(model)
-                .on_conflict(
-                    OnConflict::column(trade::Column::Id)
-                        .do_nothing()
-                        .to_owned(),
-                )
-                .exec(&service.db)
-                .await;
+                    let model = trade::ActiveModel {
+                        id: Set(trade_id),
+                        market_id: Set(market_id),
+                        sequence: Set(trade.sequence as i64),
+                        maker_order_id: Set(trade.maker_order_id),
+                        taker_order_id: Set(trade.taker_order_id),
+                        maker_side: Set(Some(Self::map_side(&trade.maker_side))),
+                        tick: Set(trade.tick as i64),
+                        quantity: Set(trade.quantity as i64),
+                        created_at: Set(now),
+                    };
 
-            match res {
+                    trade::Entity::insert(model)
+                        .on_conflict(
+                            OnConflict::column(trade::Column::Id)
+                                .do_nothing()
+                                .to_owned(),
+                        )
+                        .exec(&services.db)
+                        .await
+                }
+            })
+            .buffer_unordered(100)
+            .collect::<Vec<_>>()
+            .await;
+
+        for result in results {
+            match result {
                 Ok(_) | Err(DbErr::RecordNotInserted) => {}
                 Err(e) => {
-                    eprintln!("failed to write trade seq {}: {e}", t.sequence);
+                    eprintln!("failed to write trade: {e}");
                     return false;
                 }
             }
         }
+
         true
     }
 
