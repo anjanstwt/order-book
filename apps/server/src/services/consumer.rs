@@ -15,7 +15,7 @@ pub struct Consumer;
 
 impl Consumer {
     pub async fn spawn(services: Arc<Services>) {
-        tokio::spawn(async { Consumer::run(services).await });
+        tokio::spawn(async { Self::run(services).await });
     }
 
     async fn run(services: Arc<Services>) {

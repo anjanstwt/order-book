@@ -4,4 +4,3 @@ pub use super::market::Entity as Market;
 pub use super::order::Entity as Order;
 pub use super::trade::Entity as Trade;
 pub use super::user::Entity as User;
-pub use super::users::Entity as Users;

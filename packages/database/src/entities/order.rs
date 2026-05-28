@@ -13,7 +13,7 @@ pub struct Model {
     pub tick: Option<i32>,
     pub idx: Option<i64>,
     pub status: OrderStatus,
-    pub remaining_quantity: i32,
+    pub remaining_quantity: i64,
     pub created_at: Option<DateTime>,
     pub updated_at: DateTime,
 }

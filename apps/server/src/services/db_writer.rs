@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::NaiveDateTime;
 use database::{
     order,
-    sea_orm_active_enums::{OrderStatus, Side as DbSide},
+    sea_orm_active_enums::{OrderStatus, OrderStatus as DbStatus, Side as DbSide},
     trade,
 };
 use engine::{Side, Status, Trade};
@@ -11,7 +11,8 @@ use events::OrderEvent;
 use futures::{StreamExt, stream};
 use sea_orm::{
     ActiveValue::{Set, Unchanged},
-    DbErr, EntityTrait,
+    ColumnTrait, DbErr, EntityTrait, QueryFilter, TransactionTrait,
+    prelude::Expr,
     sea_query::OnConflict,
 };
 use uuid::Uuid;
@@ -40,7 +41,7 @@ impl DbWriter {
             tick: Set(event.tick.map(|t| t as i32)),
             idx: Set(event.order_idx.map(|i| i as i64)),
             status: Set(Self::map_status(&event.status)),
-            remaining_quantity: Set(Some(remaining as i64)),
+            remaining_quantity: Set(remaining as i64),
             created_at: Set(Some(now)),
             updated_at: Set(now),
         };
@@ -75,7 +76,7 @@ impl DbWriter {
                 }
             }
 
-            return true && trades_result;
+            return trades_result;
         }
 
         match future_order.await {
@@ -94,39 +95,12 @@ impl DbWriter {
     async fn write_trades(
         market_id: Uuid,
         now: NaiveDateTime,
-        trades: &[Trade],
+        trades: &Vec<Trade>,
         services: &Arc<Services>,
     ) -> bool {
-        let results = stream::iter(trades)
-            .map(|trade| {
-                let services = Arc::clone(&services);
-
-                async move {
-                    let trade_id = Uuid::new_v5(&market_id, &trade.sequence.to_le_bytes());
-
-                    let model = trade::ActiveModel {
-                        id: Set(trade_id),
-                        market_id: Set(market_id),
-                        sequence: Set(trade.sequence as i64),
-                        maker_order_id: Set(trade.maker_order_id),
-                        taker_order_id: Set(trade.taker_order_id),
-                        maker_side: Set(Some(Self::map_side(&trade.maker_side))),
-                        tick: Set(trade.tick as i64),
-                        quantity: Set(trade.quantity as i64),
-                        created_at: Set(now),
-                    };
-
-                    trade::Entity::insert(model)
-                        .on_conflict(
-                            OnConflict::column(trade::Column::Id)
-                                .do_nothing()
-                                .to_owned(),
-                        )
-                        .exec(&services.db)
-                        .await
-                }
-            })
-            .buffer_unordered(100)
+        let results = stream::iter(trades.iter().copied())
+            .map(|trade| Self::process_trade(market_id, now, trade, Arc::clone(services)))
+            .buffer_unordered(200)
             .collect::<Vec<_>>()
             .await;
 
@@ -141,6 +115,59 @@ impl DbWriter {
         }
 
         true
+    }
+
+    async fn process_trade(
+        market_id: Uuid,
+        now: NaiveDateTime,
+        trade: Trade,
+        services: Arc<Services>,
+    ) -> Result<(), DbErr> {
+        let txn = services.db.begin().await?;
+
+        let trade_id = Uuid::new_v5(&market_id, &trade.sequence.to_le_bytes());
+
+        let trade_model = trade::ActiveModel {
+            id: Set(trade_id),
+            market_id: Set(market_id),
+            sequence: Set(trade.sequence as i64),
+            maker_order_id: Set(trade.maker_order_id),
+            taker_order_id: Set(trade.taker_order_id),
+            maker_side: Set(Some(Self::map_side(&trade.maker_side))),
+            tick: Set(trade.tick as i64),
+            quantity: Set(trade.quantity as i64),
+            created_at: Set(now),
+        };
+
+        trade::Entity::insert(trade_model)
+            .on_conflict(
+                OnConflict::column(trade::Column::Id)
+                    .do_nothing()
+                    .to_owned(),
+            )
+            .exec(&txn)
+            .await?;
+
+        order::Entity::update_many()
+            .col_expr(
+                order::Column::RemainingQuantity,
+                Expr::col(order::Column::RemainingQuantity).sub(trade.quantity as i64),
+            )
+            .col_expr(
+                order::Column::Status,
+                Expr::case(
+                    order::Column::RemainingQuantity.eq(trade.quantity as i64),
+                    Expr::value(DbStatus::Filled),
+                )
+                .finally(Expr::value(DbStatus::PartiallyFilled))
+                .into(),
+            )
+            .filter(order::Column::Id.eq(trade.maker_order_id))
+            .exec(&txn)
+            .await?;
+
+        txn.commit().await?;
+        Ok(())
     }
 
     async fn cancel_order(event: &OrderEvent, service: &Arc<Services>) -> bool {

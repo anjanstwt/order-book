@@ -1,4 +1,4 @@
-use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table(Order::Table)
                     .modify_column(
                         ColumnDef::new(Order::RemainingQuantity)
-                            .integer()
+                            .big_integer()
                             .not_null()
                             .default(Expr::value(0)),
                     )
@@ -27,7 +27,11 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Order::Table)
-                    .modify_column(ColumnDef::new(Order::RemainingQuantity).integer().null())
+                    .modify_column(
+                        ColumnDef::new(Order::RemainingQuantity)
+                            .big_integer()
+                            .null(),
+                    )
                     .to_owned(),
             )
             .await?;
