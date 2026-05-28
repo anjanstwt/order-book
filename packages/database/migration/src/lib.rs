@@ -6,6 +6,7 @@ mod m20260525_184648_create_orders;
 mod m20260526_120000_alter_order_amounts_to_bigint;
 mod m20260527_172931_update_tick_optional;
 mod m20260527_173800_create_trade_and_update_order_with_update_time;
+mod m20260528_193049_remove_optional_remaining_quantity;
 
 pub struct Migrator;
 
@@ -19,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260526_120000_alter_order_amounts_to_bigint::Migration),
             Box::new(m20260527_172931_update_tick_optional::Migration),
             Box::new(m20260527_173800_create_trade_and_update_order_with_update_time::Migration),
+            Box::new(m20260528_193049_remove_optional_remaining_quantity::Migration),
         ]
     }
 }
