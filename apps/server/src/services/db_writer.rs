@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use chrono::NaiveDateTime;
 use database::{
     order,
     sea_orm_active_enums::{OrderStatus, Side as DbSide},
     trade,
 };
-use engine::{Side, Status};
+use engine::{Side, Status, Trade};
 use events::OrderEvent;
+use futures::future::join_all;
 use sea_orm::{
     ActiveValue::{Set, Unchanged},
     DbErr, EntityTrait,
@@ -65,6 +67,51 @@ impl DbWriter {
 
         if let Some(trades) = &event.trades {
             return Self::write_trades(event.metadata.market_id, now, trades, service).await;
+        }
+
+        true
+    }
+
+    async fn write_trade(
+        market_id: Uuid,
+        now: NaiveDateTime,
+        trades: &[Trade],
+        services: &Arc<Services>,
+    ) -> bool {
+        let future_trades = trades.iter().map(|trade| {
+            let trade_id = Uuid::new_v5(&market_id, &trade.sequence.to_le_bytes());
+
+            let model = trade::ActiveModel {
+                id: Set(trade_id),
+                market_id: Set(market_id),
+                sequence: Set(trade.sequence as i64),
+                maker_order_id: Set(trade.maker_order_id),
+                taker_order_id: Set(trade.taker_order_id),
+                maker_side: Set(Some(Self::map_side(&trade.maker_side))),
+                tick: Set(trade.tick as i64),
+                quantity: Set(trade.quantity as i64),
+                created_at: Set(now),
+            };
+
+            async move {
+                trade::Entity::insert(model)
+                    .on_conflict(
+                        OnConflict::column(trade::Column::Id)
+                            .do_nothing()
+                            .to_owned(),
+                    )
+                    .exec(&services.db)
+                    .await
+            }
+        });
+
+        let results = join_all(future_trades).await;
+
+        for result in results {
+            if let Err(e) = result {
+                eprintln!("failed to write trade: {e}");
+                return false;
+            }
         }
 
         true
