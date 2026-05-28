@@ -30,7 +30,7 @@ impl Consumer {
                 Ok(msg) => msg,
                 Err(e) => {
                     eprintln!("kafka recv error: {e}");
-                    return;
+                    continue;
                 }
             };
 
@@ -42,7 +42,7 @@ impl Consumer {
                 Ok(event) => event,
                 Err(e) => {
                     eprintln!("Invalid event payload: {e}");
-                    return;
+                    continue;
                 }
             };
 

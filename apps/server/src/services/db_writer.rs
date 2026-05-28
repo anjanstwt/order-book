@@ -21,11 +21,8 @@ pub struct DbWriter;
 impl DbWriter {
     pub async fn add_order(event: OrderEvent, service: Arc<Services>) -> bool {
         match event.status {
-            // engine internal state that should never be published
             Status::New => false,
-            // a cancellation is an update of an existing row, not an insert
             Status::Canceled => Self::cancel_order(&event, &service).await,
-            // resting, filled, partially filled, rejected all write the taker row
             _ => Self::write_order(&event, &service).await,
         }
     }

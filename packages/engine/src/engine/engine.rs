@@ -186,7 +186,7 @@ impl Engine {
         ))
     }
 
-    pub fn cancel_order(&mut self, order_idx: usize) -> Result<(), String> {
+    pub fn cancel_order(&mut self, order_idx: usize) -> Result<OrderId, String> {
         let (side, tick) = {
             let order = self
                 .storage
@@ -206,13 +206,17 @@ impl Engine {
             }
         }
 
-        self.storage
-            .get_mut_value(order_idx)
-            .expect("order vanished mid cancel")
-            .status = Status::Canceled;
+        let order_id = {
+            let order = self
+                .storage
+                .get_mut_value(order_idx)
+                .expect("order vanished mid cancel");
+            order.status = Status::Canceled;
+            order.id
+        };
 
         self.storage.remove_value(order_idx);
 
-        Ok(())
+        Ok(order_id)
     }
 }

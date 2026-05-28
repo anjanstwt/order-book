@@ -43,7 +43,7 @@ pub async fn cancel_order_controller(
 
     let mut engine = market.lock().await;
 
-    let Ok(()) = engine.cancel_order(body.order_idx) else {
+    let Ok(order_id) = engine.cancel_order(body.order_idx) else {
         return Response::error(
             StatusCode::CONFLICT,
             Some("Failed to cancel your order".to_string()),
@@ -57,7 +57,7 @@ pub async fn cancel_order_controller(
             market_id: body.market_id,
             timestamp: Utc::now(),
         },
-        order_id: Uuid::new_v4(),
+        order_id,
         order_idx: Some(body.order_idx),
         quantity: 0,
         side: body.side,
