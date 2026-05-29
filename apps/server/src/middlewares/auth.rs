@@ -1,11 +1,15 @@
-use std::env;
-
-use axum::{body::Body, http::Request, middleware::Next, response::Response as AxumResponse};
+use axum::{
+    Extension, body::Body, http::Request, middleware::Next, response::Response as AxumResponse,
+};
 use jsonwebtoken::{DecodingKey, Validation, decode};
 
-use crate::{services::Response, types::AuthUser};
+use crate::{Services, services::Response, types::AuthUser};
 
-pub async fn auth(mut req: Request<Body>, next: Next) -> Result<AxumResponse, Response<()>> {
+pub async fn auth(
+    Extension(services): Extension<Services>,
+    mut req: Request<Body>,
+    next: Next,
+) -> Result<AxumResponse, Response<()>> {
     let Some(auth_header) = req.headers().get("authorization") else {
         return Err(Response::not_authorized());
     };
@@ -19,11 +23,11 @@ pub async fn auth(mut req: Request<Body>, next: Next) -> Result<AxumResponse, Re
     }
 
     let token = auth_header.strip_prefix("Bearer ").unwrap_or("");
-    if token.len() == 0 {
+    if token.is_empty() {
         return Err(Response::not_authorized());
     }
 
-    let secret = env::var("AUTH_SECRET").unwrap();
+    let secret = services.env.auth_secret;
 
     let Ok(token_data) = decode::<AuthUser>(
         token,

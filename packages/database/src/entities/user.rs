@@ -11,9 +11,19 @@ pub struct Model {
     pub email: String,
     pub name: String,
     pub image: Option<String>,
+    pub is_admin: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::market::Entity")]
+    Market,
+}
+
+impl Related<super::market::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Market.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

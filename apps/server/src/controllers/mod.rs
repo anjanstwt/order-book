@@ -12,3 +12,6 @@ pub use cancel_order::*;
 
 pub mod market_order;
 pub use market_order::*;
+
+pub mod admin;
+pub use admin::*;

@@ -33,6 +33,7 @@ pub async fn signin_controller(
         email: Set(body.email),
         name: Set(body.name),
         image: Set(body.image),
+        ..Default::default()
     })
     .on_conflict(
         OnConflict::column(user::Column::Email)
@@ -48,7 +49,14 @@ pub async fn signin_controller(
     let secret = env::var("AUTH_SECRET").unwrap();
 
     let exp = get_current_timestamp() * 60 * 60 * 24 * 30;
-    let auth = AuthUser::new(user.id, user.email, user.name, user.image, exp);
+    let auth = AuthUser::new(
+        user.id,
+        user.email,
+        user.name,
+        user.image,
+        user.is_admin,
+        exp,
+    );
 
     let Ok(token) = encode(
         &Header::default(),

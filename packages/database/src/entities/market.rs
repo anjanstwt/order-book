@@ -10,6 +10,7 @@ pub struct Model {
     pub currency_a: String,
     pub currency_b: String,
     pub created_at: Option<DateTime>,
+    pub created_by: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -18,6 +19,14 @@ pub enum Relation {
     Order,
     #[sea_orm(has_many = "super::trade::Entity")]
     Trade,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedBy",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User,
 }
 
 impl Related<super::order::Entity> for Entity {
@@ -29,6 +38,12 @@ impl Related<super::order::Entity> for Entity {
 impl Related<super::trade::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Trade.def()
+    }
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
     }
 }
 

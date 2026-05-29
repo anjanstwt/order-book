@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{Extension, Router};
 use uuid::Uuid;
 
 use crate::{routes::router, services::Consumer};
@@ -21,7 +21,11 @@ async fn main() {
     services.add_market(Uuid::nil(), None);
     Consumer::spawn(Arc::clone(&services)).await;
 
-    let app = Router::new().nest("/api/v1", router()).with_state(services);
+    let app = Router::new()
+        .nest("/api/v1", router())
+        // the extension layer here is to pass services in middlewares
+        .layer(Extension(Arc::clone(&services)))
+        .with_state(services);
 
     let addr = "0.0.0.0:8080";
 
