@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     Extension, body::Body, http::Request, middleware::Next, response::Response as AxumResponse,
 };
@@ -6,7 +8,7 @@ use jsonwebtoken::{DecodingKey, Validation, decode};
 use crate::{Services, services::Response, types::AuthUser};
 
 pub async fn auth(
-    Extension(services): Extension<Services>,
+    Extension(services): Extension<Arc<Services>>,
     mut req: Request<Body>,
     next: Next,
 ) -> Result<AxumResponse, Response<()>> {
@@ -27,7 +29,7 @@ pub async fn auth(
         return Err(Response::not_authorized());
     }
 
-    let secret = services.env.auth_secret;
+    let secret = services.env.auth_secret.clone();
 
     let Ok(token_data) = decode::<AuthUser>(
         token,
