@@ -1,6 +1,7 @@
 use std::{env, sync::Arc};
 
 use axum::{Json, extract::State, http::StatusCode};
+use colored::Colorize;
 use jsonwebtoken::{EncodingKey, Header, encode, get_current_timestamp};
 use sea_orm::{EntityTrait, Set, sea_query::OnConflict};
 use serde::{Deserialize, Serialize};
@@ -45,6 +46,8 @@ pub async fn signin_controller(
     else {
         return Response::system_error();
     };
+
+    println!("{}", format!("[USER] signed in         {} ({})", &user.name, &user.email).yellow());
 
     let secret = env::var("AUTH_SECRET").unwrap();
 

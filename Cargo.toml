@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "apps/*",
+    "apps/server",
     "packages/*",
     "packages/database/migration",
 ]

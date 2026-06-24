@@ -108,7 +108,7 @@ impl DbWriter {
             match result {
                 Ok(_) | Err(DbErr::RecordNotInserted) => {}
                 Err(e) => {
-                    eprintln!("failed to write trade: {e}");
+                    // eprintln!("failed to write trade: {e}");
                     return false;
                 }
             }

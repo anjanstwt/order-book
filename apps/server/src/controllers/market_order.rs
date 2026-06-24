@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use chrono::Utc;
+use colored::Colorize;
 use engine::{Quantity, Side};
 use events::OrderEvent;
 use sea_orm::{EntityTrait, debug_print};
@@ -49,6 +50,13 @@ pub async fn market_order_controller(
             None,
         );
     };
+
+    let side_str = match body.side { Side::Bid => "BID", Side::Ask => "ASK" };
+    if report.filled_quantity > 0 {
+        println!("{}", format!("[USER] order fulfilled  {} market x {} (filled {})", side_str, body.quantity, report.filled_quantity).blue());
+    } else {
+        println!("{}", format!("[USER] market order     {} x {} (no fill, empty book)", side_str, body.quantity).magenta());
+    }
 
     let event = match OrderEvent::convert(user.id, body.market_id, &report, Utc::now(), None) {
         Ok(event) => event,

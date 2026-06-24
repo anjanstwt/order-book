@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use chrono::Utc;
+use colored::Colorize;
 use engine::{Side, Status};
 use events::{Metadata, OrderEvent};
 use sea_orm::EntityTrait;
@@ -50,6 +51,8 @@ pub async fn cancel_order_controller(
             None,
         );
     };
+
+    println!("{}", format!("[USER] order cancelled  idx {}", body.order_idx).red());
 
     let event = OrderEvent {
         metadata: Metadata {

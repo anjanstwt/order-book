@@ -7,6 +7,14 @@ edition = "2024"
 serde = { version = "1.0.228", features = ["derive"] }
 uuid = { version = "1.23.1", default-features = false, features = ["serde"] }
 
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+uuid = { version = "1.23.1", features = ["v4"] }
+
+[[bench]]
+name = "engine_tps"
+harness = false
+
 [profile.release]
 panic = "abort" # this will kill the complete architecture in an instant when panic occurs, without clean shutdown
 

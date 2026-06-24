@@ -20,3 +20,16 @@ uuid = { version = "1.23.1", features = ["v4", "v5"] }
 dashmap = "6.2.1"
 rdkafka = { version = "0.39.0", features = ["tokio", "cmake-build"]}
 futures = "0.3.32"
+rand = "0.8"
+colored = "2"
+reqwest = { version = "0.12", features = ["json"] }
+dialoguer = "0.11"
+anyhow = "1"
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[[bin]]
+name = "cli"
+path = "src/cli/main.rs"

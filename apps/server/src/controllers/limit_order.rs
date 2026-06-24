@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use chrono::Utc;
+use colored::Colorize;
 use engine::{Quantity, Side, Tick};
 use events::OrderEvent;
 use sea_orm::{EntityTrait, debug_print};
@@ -47,8 +48,7 @@ pub async fn limit_order_controller(
 
     let mut engine = market.lock().await;
 
-    let Ok(report) = engine.submit_limit_order(order_id, body.side, body.tick, body.quantity)
-    else {
+    let Ok(report) = engine.submit_limit_order(order_id, body.side, body.tick, body.quantity) else {
         return Response::error(
             StatusCode::SERVICE_UNAVAILABLE,
             Some("Failed to place order in the engine".to_string()),
@@ -56,6 +56,13 @@ pub async fn limit_order_controller(
         );
     };
     drop(engine);
+
+    let side_str = match body.side { Side::Bid => "BID", Side::Ask => "ASK" };
+    if report.filled_quantity > 0 {
+        println!("{}", format!("[USER] order fulfilled  {} {} x {} (filled {})", side_str, body.tick, body.quantity, report.filled_quantity).blue());
+    } else {
+        println!("{}", format!("[USER] limit order      {} {} x {}", side_str, body.tick, body.quantity).green());
+    }
 
     let event = match OrderEvent::convert(
         user.id,

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::{Extension, Json, extract::State, http::StatusCode};
+use colored::Colorize;
 use sea_orm::{ActiveValue::Set, EntityTrait};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -64,6 +65,8 @@ pub async fn create_market_controller(
             )),
         );
     };
+
+    println!("{}", format!("[admin] market created   {}/{} ({})", created_market.currency_a, created_market.currency_b, created_market.id).cyan());
 
     Response::success(
         Some(CreateMarketData {

@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use axum::{Extension, Router};
-use uuid::Uuid;
-
 use crate::{routes::router, services::Consumer};
 
+pub mod bot;
 pub mod config;
 pub mod controllers;
 pub mod middlewares;
@@ -18,8 +17,9 @@ pub use services::Services;
 async fn main() {
     // load all the services
     let services = Services::core().await;
-    services.add_market(Uuid::nil(), None);
+    let bot_market_id = bot::load_markets(&services).await;
     Consumer::spawn(Arc::clone(&services)).await;
+    tokio::spawn(bot::run(Arc::clone(&services), bot_market_id));
 
     let app = Router::new()
         .nest("/api/v1", router())
